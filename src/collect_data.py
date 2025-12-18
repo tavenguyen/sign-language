@@ -1,4 +1,5 @@
 import os
+import cv2 as cv
 
 TARGET_LABEL = input("Class: ").upper()
 
@@ -16,3 +17,8 @@ def create_dirs():
 
 def main():
     create_dirs()
+
+    # Camera Setup
+    cap = cv.VideoCapture(0)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, 960)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 540)
