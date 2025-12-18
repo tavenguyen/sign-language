@@ -28,6 +28,7 @@ sign-language/
 │
 └── src/                        # Source code chính
     ├── collect_data.py         # Script chuyển raw_images -> keypoints
+    ├── check_data.py           # Script để kiểm tra chất lượng của data.
     ├── train.py                # Script load combined_data.csv -> train -> lưu vào model/
     └── inference.py            # Script nhận diện realtime
 ```
