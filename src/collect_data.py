@@ -134,6 +134,9 @@ def main():
         results = hands.process(image)
         image.flags.writeable = True
 
+        is_stable = False
+        movement_val = 0.0
+
         if results.multi_hand_landmarks: 
             for hand_landmarks, hand_handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
                 if not is_right_hand(hand_handedness):
@@ -172,7 +175,7 @@ def main():
                     hand_landmarks, 
                     mp_hands.HAND_CONNECTIONS)
                 
-                key = cv.waitKey(10)
+                key = cv.waitKey(1)
                 if key == ord('k') or key == ord('K'):
                     if is_stable:
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
@@ -181,8 +184,13 @@ def main():
                         cv.putText(debug_image, "SAVING!", (10, 50), 
                                cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     else:
-                        cv.putText(debug_image, "TAY QUA NHANH!", (10, 50), 
+                        cv.putText(debug_image, "TOO FAST!", (10, 50), 
                                cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                        
+                if key == ord('q'):
+                    cap.release()
+                    cv.destroyAllWindows()
+                    return
                         
         cv.putText(debug_image, f"Count: {count}", (10, 70), 
                    cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
