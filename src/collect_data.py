@@ -1,9 +1,11 @@
 import os
 import copy
+import csv
 import itertools
 import numpy as np
 import cv2 as cv
 import mediapipe as mp
+import datetime 
 
 STILLNESS_THRESHOLD = 5
 
@@ -84,6 +86,17 @@ def pre_process_landmark(landmark_list):
 
     return temp_landmark_list
 
+def save_data(image, processed_landmark_list, raw_landmark_list):
+    # CSV (Append mode)
+    with open(KEYPOINT_PATH, 'a', newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([TARGET_LABEL, *processed_landmark_list])
+    
+    # Store Raw
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    img_filename = f"{TARGET_LABEL}_{timestamp}.jpg"
+    cv.imwrite(os.path.join(RAW_IMAGE_DIR, img_filename), image)
+
 def main():
     create_dirs()
 
@@ -101,6 +114,11 @@ def main():
         min_detection_confidence = 0.7,    # Ngưỡng tin cậy tối thiểu để mô hình nhận diện đó là tay.
         min_tracking_confidence = 0.5,     # Ngưỡng tin cậy tối thiểu để mô hình phát hiện các đốt ngón tay.
     )
+
+    count = 0
+    if os.path.exists(KEYPOINT_PATH):
+        with open(KEYPOINT_PATH, 'r') as f:
+            count = sum(1 for line in f)
 
     prev_landmark_list = None
     while cap.isOpened():
@@ -142,7 +160,7 @@ def main():
                 # Draw a rectangle covered hand.
                 cv.rectangle(debug_image, (x, y), (x + w, y + h), status_color, 2)
 
-                cv.putText(debug_image, status_text, (10, 50), 
+                cv.putText(debug_image, status_text, (10, 30), 
                         cv.FONT_HERSHEY_SIMPLEX, 1, status_color, 2, cv.LINE_AA)
                 
                 cv.putText(debug_image, conf_text, (x, y - 10), 
@@ -158,7 +176,17 @@ def main():
                 if key == ord('k') or key == ord('K'):
                     if is_stable:
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
-
+                        save_data(debug_image, pre_process_landmark, landmark_list)
+                        count += 1
+                        cv.putText(debug_image, "SAVING!", (10, 50), 
+                               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    else:
+                        cv.putText(debug_image, "TAY QUA NHANH!", (10, 50), 
+                               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                        
+        cv.putText(debug_image, f"Count: {count}", (10, 70), 
+                   cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        
         cv.imshow('Data Collection', debug_image)
 
         if cv.waitKey(1) == ord('q'):
