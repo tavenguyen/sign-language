@@ -102,8 +102,8 @@ def main():
 
     # Camera Setup
     cap = cv.VideoCapture(0)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, 960)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 540)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
 
     # MediaPipe setup
     mp_hands = mp.solutions.hands
