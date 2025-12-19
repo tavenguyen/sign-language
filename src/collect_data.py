@@ -176,7 +176,7 @@ def main():
                 if key == ord('k') or key == ord('K'):
                     if is_stable:
                         pre_processed_landmark_list = pre_process_landmark(landmark_list)
-                        save_data(debug_image, pre_process_landmark, landmark_list)
+                        save_data(debug_image, pre_processed_landmark_list, landmark_list)
                         count += 1
                         cv.putText(debug_image, "SAVING!", (10, 50), 
                                cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
