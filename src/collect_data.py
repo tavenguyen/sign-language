@@ -37,6 +37,22 @@ def is_hand_moving(current_landmarks, previous_landmarks, threshold):
 
     return average_movement < threshold, average_movement
 
+def calc_landmark_list(image, landmarks):
+    """
+    Chuyển đổi toạ độ chuẩn hoá (0.0-1.0) sang toạ độ pixel
+    """
+    image_width, image_height = image.shape[1], image.shape[0]
+    landmark_point = []
+
+    # Keypoint
+    for _, landmark in enumerate(landmarks.landmark):
+        landmark_x = min(int(landmark.x * image_width), image_width - 1)
+        landmark_y = min(int(landmark.y * image_height), image_height - 1)
+        # landmark_z = landmark.z # Tạm thời bỏ qua Z cho mô hình đơn giản
+        landmark_point.append([landmark_x, landmark_y])
+
+    return landmark_point
+
 def main():
     create_dirs()
 
@@ -71,6 +87,9 @@ def main():
         if results.multi_hand_landmarks: 
             for hand_landmarks, hand_handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
                 if is_right_hand(hand_handedness):
+                    landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+                    
+                    # Confidence Score
                     confidence_score = hand_handedness.classification[0].score
                     label = hand_handedness.classification[0].label 
                     print(f"Label: {label} | Score: {confidence_score:.4f}")
