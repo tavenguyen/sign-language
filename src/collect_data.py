@@ -89,6 +89,10 @@ def main():
                 if is_right_hand(hand_handedness):
                     landmark_list = calc_landmark_list(debug_image, hand_landmarks)
                     
+                    # Draw a rectangle covered hand.
+                    x, y, w, h = cv.boundingRect(np.array(landmark_list))
+                    cv.rectangle(debug_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    
                     # Confidence Score
                     confidence_score = hand_handedness.classification[0].score
                     label = hand_handedness.classification[0].label 
