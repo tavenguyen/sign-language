@@ -17,6 +17,9 @@ def create_dirs():
     if not os.path.exists(keypoint_dir):
         os.makedirs(keypoint_dir)
 
+def is_right_hand(handedness):
+    return handedness.classification[0].label == 'Left'  
+
 def main():
     create_dirs()
 
@@ -49,20 +52,21 @@ def main():
         image.flags.writeable = True
 
         if results.multi_hand_landmarks: 
-            for idx, hand_handedness in enumerate(results.multi_handedness):
-                confidence_score = hand_handedness.classification[0].score
-                label = hand_handedness.classification[0].label 
-                print(f"Label: {label} | Score: {confidence_score:.4f}")
-                text_display = f"{label}: {confidence_score:.0%}"
+            for hand_landmarks, hand_handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                if is_right_hand(hand_handedness):
+                    confidence_score = hand_handedness.classification[0].score
+                    label = hand_handedness.classification[0].label 
+                    print(f"Label: {label} | Score: {confidence_score:.4f}")
+                    text_display = f"{label}: {confidence_score:.0%}"
 
-                color = (0, 255, 0)
-                cv.putText(image, text_display, (10, 50), 
-                        cv.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv.LINE_AA)
-                
-                mp_drawing.draw_landmarks(
-                    image, 
-                    results.multi_hand_landmarks[idx], 
-                    mp_hands.HAND_CONNECTIONS)
+                    color = (0, 255, 0)
+                    cv.putText(image, text_display, (10, 50), 
+                            cv.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv.LINE_AA)
+                    
+                    mp_drawing.draw_landmarks(
+                        image, 
+                        hand_landmarks, 
+                        mp_hands.HAND_CONNECTIONS)
 
         cv.imshow('Data Collection', image)
 
