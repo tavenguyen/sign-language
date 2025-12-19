@@ -1,5 +1,6 @@
 import os
 import cv2 as cv
+import mediapipe as mp
 
 TARGET_LABEL = input("Class: ").upper()
 
@@ -22,6 +23,16 @@ def main():
     cap = cv.VideoCapture(0)
     cap.set(cv.CAP_PROP_FRAME_WIDTH, 960)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, 540)
+
+    # MediaPipe setup
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+    hands = mp_hands.Hands(
+        static_image_mode = False,         # Video mode
+        max_num_hands = 1,                 # Only 1 hand.
+        min_detection_confidence = 0.7,    # Ngưỡng tin cậy tối thiểu để mô hình nhận diện đó là tay.
+        min_tracking_confidence = 0.5,     # Ngưỡng tin cậy tối thiểu để mô hình phát hiện các đốt ngón tay.
+    )
 
     while cap.isOpened():
         ret, image = cap.read()
