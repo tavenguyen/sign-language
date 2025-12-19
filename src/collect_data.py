@@ -22,3 +22,20 @@ def main():
     cap = cv.VideoCapture(0)
     cap.set(cv.CAP_PROP_FRAME_WIDTH, 960)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, 540)
+
+    while cap.isOpened():
+        ret, image = cap.read()
+        if not ret:
+            break
+
+        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        cv.imshow('frame', gray)
+        
+        if cv.waitKey(1) == ord('q'):
+            break
+
+    cap.release()
+    cv.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
