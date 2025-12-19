@@ -1,7 +1,10 @@
 import os
 import copy
+import numpy as np
 import cv2 as cv
 import mediapipe as mp
+
+STILLNESS_THRESHOLD = 5
 
 TARGET_LABEL = input("Class: ").upper()
 
@@ -19,6 +22,20 @@ def create_dirs():
 
 def is_right_hand(handedness):
     return handedness.classification[0].label == 'Left'  
+
+def is_hand_moving(current_landmarks, previous_landmarks, threshold):
+    if previous_landmarks is None:
+        return True 
+    
+    total_movement = 0
+    num_landmarks = len(current_landmarks)
+
+    curr_np = np.array(current_landmarks)
+    prev_np = np.array(previous_landmarks)
+    distances = np.linalg.norm(curr_np - prev_np, axis = 1)
+    average_movement = np.mean(distances)
+
+    return average_movement < threshold, average_movement
 
 def main():
     create_dirs()
