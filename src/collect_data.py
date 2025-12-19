@@ -5,7 +5,7 @@ import itertools
 import numpy as np
 import cv2 as cv
 import mediapipe as mp
-import datetime 
+from datetime import datetime
 
 STILLNESS_THRESHOLD = 5
 
