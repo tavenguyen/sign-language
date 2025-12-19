@@ -1,4 +1,5 @@
 import os
+import copy
 import cv2 as cv
 import mediapipe as mp
 
@@ -39,9 +40,32 @@ def main():
         if not ret:
             break
 
-        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        cv.imshow('frame', gray)
-        
+        image = cv.flip(image, 1)
+        debug_image = copy.deepcopy(image)
+
+        image.flags.writeable = False
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        results = hands.process(image)
+        image.flags.writeable = True
+
+        if results.multi_hand_landmarks: 
+            for idx, hand_handedness in enumerate(results.multi_handedness):
+                confidence_score = hand_handedness.classification[0].score
+                label = hand_handedness.classification[0].label 
+                print(f"Label: {label} | Score: {confidence_score:.4f}")
+                text_display = f"{label}: {confidence_score:.0%}"
+
+                color = (0, 255, 0)
+                cv.putText(image, text_display, (10, 50), 
+                        cv.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv.LINE_AA)
+                
+                mp_drawing.draw_landmarks(
+                    image, 
+                    results.multi_hand_landmarks[idx], 
+                    mp_hands.HAND_CONNECTIONS)
+
+        cv.imshow('Data Collection', image)
+
         if cv.waitKey(1) == ord('q'):
             break
 
