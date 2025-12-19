@@ -24,11 +24,11 @@ def create_dirs():
         os.makedirs(keypoint_dir)
 
 def is_right_hand(handedness):
-    return handedness.classification[0].label == 'Left'  
+    return handedness.classification[0].label == 'Right'  
 
 def is_hand_moving(current_landmarks, previous_landmarks, threshold):
     if previous_landmarks is None:
-        return True 
+        return True, 0
     
     total_movement = 0
     num_landmarks = len(current_landmarks)
