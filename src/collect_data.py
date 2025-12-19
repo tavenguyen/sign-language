@@ -71,6 +71,7 @@ def main():
         min_tracking_confidence = 0.5,     # Ngưỡng tin cậy tối thiểu để mô hình phát hiện các đốt ngón tay.
     )
 
+    prev_landmark_list = None
     while cap.isOpened():
         ret, image = cap.read()
         if not ret:
@@ -86,29 +87,43 @@ def main():
 
         if results.multi_hand_landmarks: 
             for hand_landmarks, hand_handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                if is_right_hand(hand_handedness):
-                    landmark_list = calc_landmark_list(debug_image, hand_landmarks)
-                    
-                    # Draw a rectangle covered hand.
-                    x, y, w, h = cv.boundingRect(np.array(landmark_list))
-                    cv.rectangle(debug_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    
-                    # Confidence Score
-                    confidence_score = hand_handedness.classification[0].score
-                    label = hand_handedness.classification[0].label 
-                    print(f"Label: {label} | Score: {confidence_score:.4f}")
-                    text_display = f"{label}: {confidence_score:.0%}"
+                if not is_right_hand(hand_handedness):
+                    continue
 
-                    color = (0, 255, 0)
-                    cv.putText(image, text_display, (10, 50), 
-                            cv.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv.LINE_AA)
-                    
-                    mp_drawing.draw_landmarks(
-                        image, 
-                        hand_landmarks, 
-                        mp_hands.HAND_CONNECTIONS)
+                # Data Processing
+                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+                x, y, w, h = cv.boundingRect(np.array(landmark_list))
 
-        cv.imshow('Data Collection', image)
+                # Confidence Score
+                confidence_score = hand_handedness.classification[0].score
+                hand_label = hand_handedness.classification[0].label 
+
+                # State Check
+                is_stable, movement_val = is_hand_moving(landmark_list, prev_landmark_list, threshold = STILLNESS_THRESHOLD)
+                prev_landmark_list = landmark_list
+                
+                status_color = (0, 255, 0) if is_stable else (0, 0, 255) 
+                status_text = f"Stable ({movement_val:.1f})" if is_stable else f"MOVING! ({movement_val:.1f})"
+                conf_text = f"{hand_label}: {confidence_score:.0%}"
+                print(status_text)
+                print(conf_text)
+
+                # Draw a rectangle covered hand.
+                cv.rectangle(debug_image, (x, y), (x + w, y + h), status_color, 2)
+
+                cv.putText(debug_image, status_text, (10, 50), 
+                        cv.FONT_HERSHEY_SIMPLEX, 1, status_color, 2, cv.LINE_AA)
+                
+                cv.putText(debug_image, conf_text, (x, y - 10), 
+                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+                
+                # Draw Skeleton Hand
+                mp_drawing.draw_landmarks(
+                    debug_image, 
+                    hand_landmarks, 
+                    mp_hands.HAND_CONNECTIONS)
+
+        cv.imshow('Data Collection', debug_image)
 
         if cv.waitKey(1) == ord('q'):
             break
