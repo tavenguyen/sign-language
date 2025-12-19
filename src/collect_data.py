@@ -1,5 +1,6 @@
 import os
 import copy
+import itertools
 import numpy as np
 import cv2 as cv
 import mediapipe as mp
@@ -53,6 +54,36 @@ def calc_landmark_list(image, landmarks):
 
     return landmark_point
 
+def pre_process_landmark(landmark_list):
+    """
+    1. Chuyển về toạ độ tương đối (Trừ đi toạ độ cổ tay - điểm số 0)
+    2. Chuẩn hoá (Normalize) để không phụ thuộc kích thước tay hay khoảng cách camera.
+    3. Làm phẳng (Flatten) thành mảng 1 chiều.
+    """
+    temp_landmark_list = copy.deepcopy(landmark_list)
+
+    # 1. Convert to relative coordinates
+    base_x, base_y = 0, 0
+    for index, landmark_point in enumerate(temp_landmark_list):
+        if index == 0:
+            base_x, base_y = landmark_point[0], landmark_point[1]
+
+        temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x
+        temp_landmark_list[index][1] = temp_landmark_list[index][1] - base_y
+
+    # 2. Convert to a one-dimensional list
+    temp_landmark_list = list(itertools.chain.from_iterable(temp_landmark_list))
+
+    # 3. Normalization (Max absolute scaling)
+    max_value = max(list(map(abs, temp_landmark_list)))
+
+    def normalize_(n):
+        return n / max_value if max_value != 0 else 0 # Tránh chia cho 0
+
+    temp_landmark_list = list(map(normalize_, temp_landmark_list))
+
+    return temp_landmark_list
+
 def main():
     create_dirs()
 
@@ -101,7 +132,7 @@ def main():
                 # State Check
                 is_stable, movement_val = is_hand_moving(landmark_list, prev_landmark_list, threshold = STILLNESS_THRESHOLD)
                 prev_landmark_list = landmark_list
-                
+
                 status_color = (0, 255, 0) if is_stable else (0, 0, 255) 
                 status_text = f"Stable ({movement_val:.1f})" if is_stable else f"MOVING! ({movement_val:.1f})"
                 conf_text = f"{hand_label}: {confidence_score:.0%}"
@@ -122,6 +153,11 @@ def main():
                     debug_image, 
                     hand_landmarks, 
                     mp_hands.HAND_CONNECTIONS)
+                
+                key = cv.waitKey(10)
+                if key == ord('k') or key == ord('K'):
+                    if is_stable:
+                        pre_processed_landmark_list = pre_process_landmark(landmark_list)
 
         cv.imshow('Data Collection', debug_image)
 
