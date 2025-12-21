@@ -40,6 +40,16 @@ def is_hand_moving(current_landmarks, previous_landmarks, threshold):
 
     return average_movement < threshold, average_movement
 
+def is_hand_in_frame(landmarks, margin = 0.05):
+    """
+    margin: Khoảng cách an toàn so với mép (0.05 = 5%)
+    """
+    for lm in landmarks:
+        if lm.x < margin or lm.x > (1 - margin) or lm.y < margin or lm.y > (1 - margin):
+            return False
+        
+    return True
+
 def calc_landmark_list(image, landmarks):
     """
     Chuyển đổi toạ độ chuẩn hoá (0.0-1.0) sang toạ độ pixel
@@ -140,6 +150,10 @@ def main():
         if results.multi_hand_landmarks: 
             for hand_landmarks, hand_handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
                 if not is_right_hand(hand_handedness):
+                    continue
+
+                # Kiểm tra toàn bộ bàn tay có nằm trong khung hình không
+                if not is_hand_in_frame(hand_landmarks):
                     continue
 
                 # Data Processing
