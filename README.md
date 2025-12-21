@@ -1,7 +1,8 @@
 # sign-language
 
 ## Introduction
-Dự án này xây dựng hệ thống nhận diện bảng chữ cái ngôn ngữ ký hiệu Việt Nam trong thời gian thực. Chúng tôi sẽ sử dụng MediaPipe để trích xuất 21 landmarks trên bàn tay, phương pháp này có tốc độ inference nhanh, độ trễ thấp, và loại bỏ nhiễu tốt hơn so với xử lý ảnh truyền thống.
+Dự án này xây dựng hệ thống nhận diện bảng chữ cái ngôn ngữ ký hiệu Việt Nam trong thời gian thực. Chúng tôi sẽ sử dụng MediaPipe để trích xuất 21 landmarks trên bàn tay, phương pháp này có tốc độ inference nhanh, độ trễ thấp, và loại bỏ nhiễu tốt hơn so với xử lý ảnh truyền thống. \
+![MediaPipe 21 LandMarks](assets/hand-landmarks.png)
 
 ## Installation
 Sử dụng miniconda để tạo môi trường ảo:
