@@ -6,7 +6,8 @@ from sklearn.model_selection import train_test_split
 # A=0, B=1, C=2, ..., Y=23
 LABELS = [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 
-    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y'
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+    'UNK'
 ]
 
 INPUT_DIR = 'data/keypoints'
