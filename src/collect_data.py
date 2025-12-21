@@ -50,6 +50,18 @@ def is_hand_in_frame(landmarks, margin = 0.05):
         
     return True
 
+def is_hand_big_enough(landmarks, min_area = 0.1):
+    """
+    min_area: Diện tích tối thiểu so với khung hình.
+    """
+    x_list = [lm.x for lm in landmarks]
+    y_list = [lm.y for lm in landmarks]
+
+    width = max(x_list) - min(x_list)
+    height = max(y_list) - min(y_list)
+    
+    return (width * height) > min_area
+
 def calc_landmark_list(image, landmarks):
     """
     Chuyển đổi toạ độ chuẩn hoá (0.0-1.0) sang toạ độ pixel
@@ -154,6 +166,10 @@ def main():
 
                 # Kiểm tra toàn bộ bàn tay có nằm trong khung hình không
                 if not is_hand_in_frame(hand_landmarks):
+                    continue
+
+                # Kiểm tra tay có đủ tu không
+                if not is_hand_big_enough(hand_landmarks):
                     continue
 
                 # Data Processing
