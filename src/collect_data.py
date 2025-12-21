@@ -44,18 +44,18 @@ def is_hand_in_frame(landmarks, margin = 0.05):
     """
     margin: Khoảng cách an toàn so với mép (0.05 = 5%)
     """
-    for lm in landmarks:
+    for lm in landmarks.landmark:
         if lm.x < margin or lm.x > (1 - margin) or lm.y < margin or lm.y > (1 - margin):
             return False
         
     return True
 
-def is_hand_big_enough(landmarks, min_area = 0.1):
+def is_hand_big_enough(landmarks, min_area = 0.05):
     """
     min_area: Diện tích tối thiểu so với khung hình.
     """
-    x_list = [lm.x for lm in landmarks]
-    y_list = [lm.y for lm in landmarks]
+    x_list = [lm.x for lm in landmarks.landmark]
+    y_list = [lm.y for lm in landmarks.landmark]
 
     width = max(x_list) - min(x_list)
     height = max(y_list) - min(y_list)
