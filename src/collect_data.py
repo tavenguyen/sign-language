@@ -1,237 +1,299 @@
+import cv2
 import os
-import copy
+import time
 import csv
-import itertools
-import numpy as np
-import cv2 as cv
+import glob
 import mediapipe as mp
-from datetime import datetime
+import numpy as np
+from collections import deque
+from dataclasses import dataclass
+from typing import List, Tuple
 
-STILLNESS_THRESHOLD = 5
-
-TARGET_LABEL = input("Class: ").upper()
-
-# Directory
-RAW_IMAGE_DIR = os.path.join("data", "raw_images", TARGET_LABEL)
-KEYPOINT_PATH = os.path.join("data", "keypoints", f"{TARGET_LABEL}.csv")
-
-def create_dirs():
-    if not os.path.exists(RAW_IMAGE_DIR):
-        os.makedirs(RAW_IMAGE_DIR)
+# =========================================================================
+#                           CẤU HÌNH
+# =========================================================================
+@dataclass
+class Config:
+    RAW_IMAGES_DIR: str = '../data/raw_images'
+    KEYPOINTS_DIR: str = '../data/keypoints'
     
-    keypoint_dir = os.path.dirname(KEYPOINT_PATH)
-    if not os.path.exists(keypoint_dir):
-        os.makedirs(keypoint_dir)
-
-def is_right_hand(handedness):
-    return handedness.classification[0].label == 'Right'  
-
-def is_hand_moving(current_landmarks, previous_landmarks, threshold):
-    if previous_landmarks is None:
-        return True, 0
+    OFFSET: int = 20
+    IMG_SIZE: int = 128 
+    CAPTURE_DELAY: float = 0.4
+    MOVEMENT_THRESHOLD: float = 8.0 
+    JITTER_THRESHOLD: float = 15.0  
+    SMOOTHING_WINDOW: int = 10      
     
-    total_movement = 0
-    num_landmarks = len(current_landmarks)
-
-    curr_np = np.array(current_landmarks)
-    prev_np = np.array(previous_landmarks)
-    distances = np.linalg.norm(curr_np - prev_np, axis = 1)
-    average_movement = np.mean(distances)
-
-    return average_movement < threshold, average_movement
-
-def is_hand_in_frame(landmarks, margin = 0.05):
-    """
-    margin: Khoảng cách an toàn so với mép (0.05 = 5%)
-    """
-    for lm in landmarks.landmark:
-        if lm.x < margin or lm.x > (1 - margin) or lm.y < margin or lm.y > (1 - margin):
-            return False
-        
-    return True
-
-def is_hand_big_enough(landmarks, min_area = 0.05):
-    """
-    min_area: Diện tích tối thiểu so với khung hình.
-    """
-    x_list = [lm.x for lm in landmarks.landmark]
-    y_list = [lm.y for lm in landmarks.landmark]
-
-    width = max(x_list) - min(x_list)
-    height = max(y_list) - min(y_list)
+    TARGET_HAND: str = 'Right'      
+    CAM_ID: int = 0
     
-    return (width * height) > min_area
+    COLLECTOR_NAME: str = "Unknown" 
 
-def calc_landmark_list(image, landmarks):
-    """
-    Chuyển đổi toạ độ chuẩn hoá (0.0-1.0) sang toạ độ pixel
-    """
-    image_width, image_height = image.shape[1], image.shape[0]
-    landmark_point = []
-
-    # Keypoint
-    for _, landmark in enumerate(landmarks.landmark):
-        landmark_x = min(int(landmark.x * image_width), image_width - 1)
-        landmark_y = min(int(landmark.y * image_height), image_height - 1)
-        # landmark_z = landmark.z # Tạm thời bỏ qua Z cho mô hình đơn giản
-        landmark_point.append([landmark_x, landmark_y])
-
-    return landmark_point
-
-def pre_process_landmark(landmark_list):
-    """
-    1. Chuyển về toạ độ tương đối (Trừ đi toạ độ cổ tay - điểm số 0)
-    2. Chuẩn hoá (Normalize) để không phụ thuộc kích thước tay hay khoảng cách camera.
-    3. Làm phẳng (Flatten) thành mảng 1 chiều.
-    """
-    temp_landmark_list = copy.deepcopy(landmark_list)
-
-    # 1. Convert to relative coordinates
-    base_x, base_y = 0, 0
-    for index, landmark_point in enumerate(temp_landmark_list):
-        if index == 0:
-            base_x, base_y = landmark_point[0], landmark_point[1]
-
-        temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x
-        temp_landmark_list[index][1] = temp_landmark_list[index][1] - base_y
-
-    # 2. Convert to a one-dimensional list
-    temp_landmark_list = list(itertools.chain.from_iterable(temp_landmark_list))
-
-    # 3. Normalization (Max absolute scaling)
-    max_value = max(list(map(abs, temp_landmark_list)))
-
-    def normalize_(n):
-        return n / max_value if max_value != 0 else 0 # Tránh chia cho 0
-
-    temp_landmark_list = list(map(normalize_, temp_landmark_list))
-
-    return temp_landmark_list
-
-def save_data(image, processed_landmark_list, raw_landmark_list):
-    # CSV (Append mode)
-    with open(KEYPOINT_PATH, 'a', newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([TARGET_LABEL, *processed_landmark_list])
-    
-    # Store Raw
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    img_filename = f"{TARGET_LABEL}_{timestamp}.jpg"
-    cv.imwrite(os.path.join(RAW_IMAGE_DIR, img_filename), image)
-
-def main():
-    create_dirs()
-
-    # Camera Setup
-    cap = cv.VideoCapture(0)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
-
-    # MediaPipe setup
-    mp_hands = mp.solutions.hands
-    mp_drawing = mp.solutions.drawing_utils
-    hands = mp_hands.Hands(
-        static_image_mode = False,         # Video mode
-        max_num_hands = 1,                 # Only 1 hand.
-        min_detection_confidence = 0.7,    # Ngưỡng tin cậy tối thiểu để mô hình nhận diện đó là tay.
-        min_tracking_confidence = 0.5,     # Ngưỡng tin cậy tối thiểu để mô hình phát hiện các đốt ngón tay.
+    # Danh sách nhãn để kiểm tra thống kê
+    EXPECTED_LABELS: Tuple[str, ...] = (
+        'A', 'B', 'C', 'D', 'E', 'G', 'H', 'I', 'K', 'L', 'M', 
+        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'X', 'Y',
+        'NOTHING'
     )
 
-    count = 0
-    if os.path.exists(KEYPOINT_PATH):
-        with open(KEYPOINT_PATH, 'r') as f:
-            count = sum(1 for line in f)
+# =========================================================================
+#                           HÀM TIỆN ÍCH
+# =========================================================================
 
-    prev_landmark_list = None
-    while cap.isOpened():
-        ret, image = cap.read()
-        if not ret:
-            break
+def calc_landmark_px(image: np.ndarray, landmarks) -> List[List[int]]:
+    h, w, _ = image.shape
+    landmark_point = []
+    for lm in landmarks.landmark:
+        px = min(int(lm.x * w), w - 1)
+        py = min(int(lm.y * h), h - 1)
+        landmark_point.append([px, py])
+    return landmark_point
 
-        image = cv.flip(image, 1)
-        debug_image = copy.deepcopy(image)
+def pre_process_landmark(landmark_list: List[List[int]]) -> List[float]:
+    temp_lm = np.array(landmark_list)
+    base_x, base_y = temp_lm[0]
+    temp_lm = temp_lm - [base_x, base_y]
+    flattened = temp_lm.flatten()
+    max_value = np.max(np.abs(flattened))
+    if max_value != 0:
+        flattened = flattened / max_value
+    return flattened.tolist()
 
-        image.flags.writeable = False
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        results = hands.process(image)
-        image.flags.writeable = True
+def get_square_bbox(lm_px: List[List[int]], w: int, h: int, offset: int):
+    x_list = [pt[0] for pt in lm_px]
+    y_list = [pt[1] for pt in lm_px]
+    
+    min_x, max_x = min(x_list), max(x_list)
+    min_y, max_y = min(y_list), max(y_list)
+    
+    box_w = max_x - min_x
+    box_h = max_y - min_y
+    
+    max_side = max(box_w, box_h) + 2 * offset
+    center_x = min_x + box_w // 2
+    center_y = min_y + box_h // 2
+    
+    x1 = max(0, center_x - max_side // 2)
+    y1 = max(0, center_y - max_side // 2)
+    x2 = min(w, center_x + max_side // 2)
+    y2 = min(h, center_y + max_side // 2)
+    
+    return x1, y1, x2, y2
 
-        is_stable = False
-        movement_val = 0.0
+def count_images(label: str) -> int:
+    path = os.path.join(Config.RAW_IMAGES_DIR, label)
+    if not os.path.exists(path): return 0
+    return len(glob.glob(os.path.join(path, "*.jpg")))
 
-        if results.multi_hand_landmarks: 
-            for hand_landmarks, hand_handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                if not is_right_hand(hand_handedness):
-                    continue
+def print_stats():
+    print("\n--- STATISTICS ---")
+    total = 0
+    # In gọn gàng, 4 label trên 1 dòng
+    labels = Config.EXPECTED_LABELS
+    for i in range(0, len(labels), 4):
+        chunk = labels[i:i+4]
+        line = " | ".join([f"{l}: {count_images(l):<4}" for l in chunk])
+        print(line)
+        total += sum([count_images(l) for l in chunk])
+    print(f"Total Images: {total}")
+    print("------------------\n")
 
-                # Kiểm tra toàn bộ bàn tay có nằm trong khung hình không
-                if not is_hand_in_frame(hand_landmarks):
-                    continue
+def setup_dirs(label: str, name: str):
+    raw_dir = os.path.join(Config.RAW_IMAGES_DIR, label)
+    os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(Config.KEYPOINTS_DIR, exist_ok=True)
+    
+    csv_path = os.path.join(Config.KEYPOINTS_DIR, f"{label}_{name}.csv")
+    if not os.path.exists(csv_path):
+        with open(csv_path, 'w', newline='') as f:
+            header = ['label'] + [f'v{i}' for i in range(42)]
+            csv.writer(f).writerow(header)
+    return raw_dir, csv_path
 
-                # Kiểm tra tay có đủ tu không
-                if not is_hand_big_enough(hand_landmarks):
-                    continue
+# =========================================================================
+#                           BỘ THU THẬP
+# =========================================================================
 
-                # Data Processing
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
-                x, y, w, h = cv.boundingRect(np.array(landmark_list))
-
-                # Confidence Score
-                confidence_score = hand_handedness.classification[0].score
-                hand_label = hand_handedness.classification[0].label 
-
-                # State Check
-                is_stable, movement_val = is_hand_moving(landmark_list, prev_landmark_list, threshold = STILLNESS_THRESHOLD)
-                prev_landmark_list = landmark_list
-
-                status_color = (0, 255, 0) if is_stable else (0, 0, 255) 
-                status_text = f"Stable ({movement_val:.1f})" if is_stable else f"MOVING! ({movement_val:.1f})"
-                conf_text = f"{hand_label}: {confidence_score:.0%}"
-                print(status_text)
-                print(conf_text)
-
-                # Draw a rectangle covered hand.
-                cv.rectangle(debug_image, (x, y), (x + w, y + h), status_color, 2)
-
-                cv.putText(debug_image, status_text, (10, 30), 
-                        cv.FONT_HERSHEY_SIMPLEX, 1, status_color, 2, cv.LINE_AA)
-                
-                cv.putText(debug_image, conf_text, (x, y - 10), 
-                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-                
-                # Draw Skeleton Hand
-                mp_drawing.draw_landmarks(
-                    debug_image, 
-                    hand_landmarks, 
-                    mp_hands.HAND_CONNECTIONS)
-                
-                key = cv.waitKey(1)
-                if key == ord('k') or key == ord('K'):
-                    if is_stable:
-                        pre_processed_landmark_list = pre_process_landmark(landmark_list)
-                        save_data(debug_image, pre_processed_landmark_list, landmark_list)
-                        count += 1
-                        cv.putText(debug_image, "SAVING!", (10, 50), 
-                               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    else:
-                        cv.putText(debug_image, "TOO FAST!", (10, 50), 
-                               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                        
-                if key == ord('q'):
-                    cap.release()
-                    cv.destroyAllWindows()
-                    return
-                        
-        cv.putText(debug_image, f"Count: {count}", (10, 70), 
-                   cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+class HandRecorder:
+    def __init__(self, start_count: int = 0):
+        self.mp_hands = mp.solutions.hands
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.hands = self.mp_hands.Hands(
+            static_image_mode=False,
+            max_num_hands=1,
+            min_detection_confidence=0.7,
+            min_tracking_confidence=0.5
+        )
+        self.history = deque(maxlen=Config.SMOOTHING_WINDOW)
+        self.prev_wrist = None
+        self.prev_lm = None
         
-        cv.imshow('Data Collection', debug_image)
+        self.last_save = 0
+        self.auto_mode = False       
+        self.manual_trigger = False
+        self.count = start_count
 
-        if cv.waitKey(1) == ord('q'):
+    def process(self, frame, label, raw_dir, csv_path):
+        frame = cv2.flip(frame, 1)
+        h, w, _ = frame.shape
+        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = self.hands.process(img_rgb)
+        
+        display = frame.copy()
+        skeleton = np.zeros(frame.shape, dtype=np.uint8)
+        crop_img = None
+        
+        status = "AUTO" if self.auto_mode else "MANUAL"
+        color = (0, 255, 0) if self.auto_mode else (0, 255, 255)
+
+        if not results.multi_hand_landmarks:
+            self._ui(display, label, status, color)
+            self._ui(skeleton, label, status, color)
+            return display, skeleton, None
+
+        hand_lm = results.multi_hand_landmarks[0]
+        handedness = results.multi_handedness[0].classification[0].label
+        
+        if handedness != Config.TARGET_HAND:
+            cv2.putText(display, "WRONG HAND", (50, 200), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3)
+            return display, skeleton, None
+
+        # Smooth & Calc
+        self._smooth(hand_lm)
+        lm_px = calc_landmark_px(display, hand_lm)
+        
+        # Stability Check
+        curr_wrist = lm_px[0]
+        moving = self._is_moving(curr_wrist)
+        jitter = self._is_jittering(lm_px)
+        
+        self.prev_wrist = curr_wrist
+        self.prev_lm = lm_px
+
+        # Draw
+        self.mp_drawing.draw_landmarks(display, hand_lm, self.mp_hands.HAND_CONNECTIONS)
+        self.mp_drawing.draw_landmarks(skeleton, hand_lm, self.mp_hands.HAND_CONNECTIONS)
+
+        bbox = get_square_bbox(lm_px, w, h, Config.OFFSET)
+        
+        box_c = (0, 0, 255) if (moving or jitter) else color
+        cv2.rectangle(display, (bbox[0], bbox[1]), (bbox[2], bbox[3]), box_c, 2)
+        cv2.rectangle(skeleton, (bbox[0], bbox[1]), (bbox[2], bbox[3]), box_c, 2)
+
+        # Save Check
+        save = False
+        if self.auto_mode:
+            if not moving and not jitter and (time.time() - self.last_save > Config.CAPTURE_DELAY):
+                save = True
+        elif self.manual_trigger:
+            save = True
+            self.manual_trigger = False
+
+        if save:
+            self._save(frame, lm_px, label, raw_dir, csv_path, bbox)
+            cv2.rectangle(display, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 255, 255), 3)
+
+        # Crop View
+        try:
+            c = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+            if c.size != 0: crop_img = cv2.resize(c, (Config.IMG_SIZE, Config.IMG_SIZE))
+        except: pass
+
+        self._ui(display, label, status, color)
+        self._ui(skeleton, label, status, color)
+
+        return display, skeleton, crop_img
+
+    def _smooth(self, lm):
+        curr = [[l.x, l.y, l.z] for l in lm.landmark]
+        self.history.append(curr)
+        avg = np.mean(np.array(self.history), axis=0)
+        for i, l in enumerate(lm.landmark):
+            l.x, l.y, l.z = avg[i]
+
+    def _is_moving(self, wrist):
+        if self.prev_wrist is None: return False
+        return np.linalg.norm(np.array(wrist) - np.array(self.prev_wrist)) > Config.MOVEMENT_THRESHOLD
+
+    def _is_jittering(self, px):
+        if self.prev_lm is None: return 0
+        diff = np.linalg.norm(np.array(px) - np.array(self.prev_lm), axis=1)
+        return np.mean(diff) > Config.JITTER_THRESHOLD
+
+    def _save(self, frame, lm_px, label, raw_dir, csv_path, bbox):
+        c = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+        if c.size == 0: return
+
+        # Save CSV
+        norm_lm = pre_process_landmark(lm_px)
+        with open(csv_path, 'a', newline='') as f:
+            csv.writer(f).writerow([label] + norm_lm)
+
+        # Save Image
+        rs = cv2.resize(c, (Config.IMG_SIZE, Config.IMG_SIZE))
+        ts = int(time.time() * 1000)
+        name = f"{label}_{Config.COLLECTOR_NAME}_{ts}.jpg"
+        cv2.imwrite(os.path.join(raw_dir, name), rs)
+        
+        self.last_save = time.time()
+        self.count += 1
+        print(f"Saved: {name} (Count: {self.count})")
+
+    def _ui(self, frame, label, status, color):
+        cv2.putText(frame, f"Label: {label}", (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+        cv2.putText(frame, f"Count: {self.count}", (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
+        cv2.putText(frame, status, (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
+        cv2.putText(frame, "[A] Auto | [Space] Manual | [Q] Quit", (10, frame.shape[0]-10), cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200), 1)
+
+# =========================================================================
+#                           MAIN
+# =========================================================================
+def main():
+    print("--- DATA COLLECTOR ---")
+    while True:
+        name = input("Enter your name (no space): ").strip()
+        if name and " " not in name:
+            Config.COLLECTOR_NAME = name
             break
+        print("Invalid name.")
 
-    cap.release()
-    cv.destroyAllWindows()
+    while True:
+        print_stats()
+        try:
+            lbl = input(f"({Config.COLLECTOR_NAME}) Enter Label (A, B...) or 'exit': ").strip().upper()
+            if lbl in ['EXIT', '']: break
+        except EOFError: break
+
+        raw_dir, csv_path = setup_dirs(lbl, Config.COLLECTOR_NAME)
+        curr_cnt = count_images(lbl)
+        
+        print(f"-> Label: {lbl} | Current: {curr_cnt}")
+        print(f"-> CSV: {csv_path}")
+
+        cap = cv2.VideoCapture(Config.CAM_ID)
+        rec = HandRecorder(curr_cnt)
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret: break
+
+            disp, skel, crop = rec.process(frame, lbl, raw_dir, csv_path)
+            
+            cv2.imshow('Camera', disp)
+            cv2.imshow('Skeleton', skel)
+            if crop is not None: cv2.imshow('Crop', crop)
+
+            k = cv2.waitKey(1) & 0xFF
+            if k == ord('q'): break
+            if k == ord('a'): 
+                rec.auto_mode = not rec.auto_mode
+                rec.manual_trigger = False
+                print(f"Mode: {'AUTO' if rec.auto_mode else 'MANUAL'}")
+            if k == 32 and not rec.auto_mode: # Space
+                rec.manual_trigger = True
+
+        cap.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
