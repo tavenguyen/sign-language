@@ -9,9 +9,6 @@ from collections import deque
 from dataclasses import dataclass
 from typing import List, Tuple
 
-# =========================================================================
-#                           CẤU HÌNH
-# =========================================================================
 @dataclass
 class Config:
     RAW_IMAGES_DIR: str = '../data/raw_images'
@@ -35,10 +32,6 @@ class Config:
         'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'X', 'Y',
         'NOTHING'
     )
-
-# =========================================================================
-#                           HÀM TIỆN ÍCH
-# =========================================================================
 
 def calc_landmark_px(image: np.ndarray, landmarks) -> List[List[int]]:
     h, w, _ = image.shape
@@ -88,7 +81,6 @@ def count_images(label: str) -> int:
 def print_stats():
     print("\n--- STATISTICS ---")
     total = 0
-    # In gọn gàng, 4 label trên 1 dòng
     labels = Config.EXPECTED_LABELS
     for i in range(0, len(labels), 4):
         chunk = labels[i:i+4]
@@ -109,10 +101,6 @@ def setup_dirs(label: str, name: str):
             header = ['label'] + [f'v{i}' for i in range(42)]
             csv.writer(f).writerow(header)
     return raw_dir, csv_path
-
-# =========================================================================
-#                           BỘ THU THẬP
-# =========================================================================
 
 class HandRecorder:
     def __init__(self, start_count: int = 0):
@@ -245,9 +233,6 @@ class HandRecorder:
         cv2.putText(frame, status, (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, color, 2)
         cv2.putText(frame, "[A] Auto | [Space] Manual | [Q] Quit", (10, frame.shape[0]-10), cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200), 1)
 
-# =========================================================================
-#                           MAIN
-# =========================================================================
 def main():
     print("--- DATA COLLECTOR ---")
     while True:
