@@ -11,8 +11,10 @@ conda create --name sign-language-env python==3.10 -y
 conda activate sign-language-env
 pip install tensorflow==2.12.0
 pip install mediapipe==0.10.9
-pip install protobuf=3.20.3
-conda install -c conda-forge numpy pandas scikit-learn
+pip install protobuf==3.20.3
+conda install nunpy==1.26.4
+conda install python-dateutil
+conda install -c conda-forge pandas scikit-learn
 ```
 Sau khi đã cài đặt xong môi trường ảo thì ta chọn môi trường ảo đó để chạy code. Ví dụ (Vistual Studio Code): View -> Command Palette -> Python: Select Interpreter -> Chọn sign-language-env
 
