@@ -49,7 +49,7 @@ def main():
 
     # One-hot encoding cho nhan
     # Tinh so luong class dua tren du lieu thuc te (cong them 1 vi index bat dau tu 0)
-    num_classes = len(np.unique(y))
+    num_classes = int(np.max(y)) + 1
     # Hoac neu muon an toan hon neu thieu du lieu: num_classes = 23 (theo config)
     
     print(f"So luong class can phan loai: {num_classes}")
@@ -87,7 +87,7 @@ def main():
     history = model.fit(
         X_train_scaled, y_train_enc,
         validation_data=(X_test_scaled, y_test_enc),
-        epochs=1000,
+        epochs=200,
         batch_size=32,
         callbacks=[es, mc],
         verbose=1
