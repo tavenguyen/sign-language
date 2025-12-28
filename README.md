@@ -12,7 +12,7 @@ conda activate sign-language-env
 pip install tensorflow==2.12.0
 pip install mediapipe==0.10.9
 pip install protobuf==3.20.3
-conda install nunpy==1.26.4
+conda install numpy==1.26.4
 conda install python-dateutil
 conda install -c conda-forge pandas scikit-learn
 ```
