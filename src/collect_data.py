@@ -122,7 +122,10 @@ class HandRecorder:
         self.count = start_count
 
     def process(self, frame, label, raw_dir, csv_path):
-        frame = cv2.flip(frame, 1)
+        # [QUAN TRỌNG 1] Luôn lật ảnh để tạo hiệu ứng Gương (Mirror)
+        # Nếu bỏ dòng này, tay phải sẽ nằm bên phải màn hình -> Khó điều khiển
+        frame = cv2.flip(frame, 1) 
+        
         h, w, _ = frame.shape
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.hands.process(img_rgb)
@@ -140,13 +143,21 @@ class HandRecorder:
             return display, skeleton, None
 
         hand_lm = results.multi_hand_landmarks[0]
-        handedness = results.multi_handedness[0].classification[0].label
         
-        if handedness != Config.TARGET_HAND:
-            cv2.putText(display, "WRONG HAND", (50, 200), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3)
+        # [QUAN TRỌNG 2] Kiểm tra tay Trái/Phải
+        # Lưu ý: Khi đã flip ảnh (gương), MediaPipe sẽ nhận diện ngược lại.
+        # Tay Phải thật -> Lên hình là tay Trái -> MediaPipe báo 'Left'
+        detected_hand = results.multi_handedness[0].classification[0].label
+        
+        # Logic kiểm tra:
+        # Nếu bạn dùng tay PHẢI thật để thu thập -> Cần Config.TARGET_HAND = 'Left'
+        if detected_hand != Config.TARGET_HAND:
+            # Hiển thị cảnh báo to rõ
+            msg = f"WRONG HAND! Needed: {Config.TARGET_HAND}, Got: {detected_hand}"
+            cv2.putText(display, msg, (20, h//2), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 3)
             return display, skeleton, None
 
-        # Smooth & Calc
+        # Smooth & Calc (Logic giữ nguyên)
         self._smooth(hand_lm)
         lm_px = calc_landmark_px(display, hand_lm)
         
