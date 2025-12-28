@@ -17,11 +17,11 @@ class Config:
     OFFSET: int = 20
     IMG_SIZE: int = 128 
     CAPTURE_DELAY: float = 0.4
-    MOVEMENT_THRESHOLD: float = 8.0 
+    MOVEMENT_THRESHOLD: float = 5.0 
     JITTER_THRESHOLD: float = 15.0  
     SMOOTHING_WINDOW: int = 10      
     
-    TARGET_HAND: str = 'Right'      
+    TARGET_HAND: str = 'Left'      
     CAM_ID: int = 0
     
     COLLECTOR_NAME: str = "Unknown" 
