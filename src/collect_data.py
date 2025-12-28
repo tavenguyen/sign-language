@@ -11,8 +11,8 @@ from typing import List, Tuple
 
 @dataclass
 class Config:
-    RAW_IMAGES_DIR: str = '../data/raw_images'
-    KEYPOINTS_DIR: str = '../data/keypoints'
+    RAW_IMAGES_DIR: str = 'data/raw_images'
+    KEYPOINTS_DIR: str = 'data/keypoints'
     
     OFFSET: int = 20
     IMG_SIZE: int = 128 
