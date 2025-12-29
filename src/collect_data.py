@@ -124,7 +124,7 @@ class HandRecorder:
     def process(self, frame, label, raw_dir, csv_path):
         # [QUAN TRỌNG 1] Luôn lật ảnh để tạo hiệu ứng Gương (Mirror)
         # Nếu bỏ dòng này, tay phải sẽ nằm bên phải màn hình -> Khó điều khiển
-        # frame = cv2.flip(frame, 1) 
+        frame = cv2.flip(frame, 1) 
         
         h, w, _ = frame.shape
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
