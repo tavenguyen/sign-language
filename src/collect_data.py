@@ -124,7 +124,7 @@ class HandRecorder:
     def process(self, frame, label, raw_dir, csv_path):
         # [QUAN TRỌNG 1] Luôn lật ảnh để tạo hiệu ứng Gương (Mirror)
         # Nếu bỏ dòng này, tay phải sẽ nằm bên phải màn hình -> Khó điều khiển
-        frame = cv2.flip(frame, 1) 
+        # frame = cv2.flip(frame, 1) 
         
         h, w, _ = frame.shape
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -271,15 +271,28 @@ def main():
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
         rec = HandRecorder(curr_cnt)
+        
+        # Kích thước hiển thị trên màn hình (vẫn giữ nhỏ gọn)
+        DISPLAY_WIDTH = 800 
 
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret: break
 
+            # Xử lý trên ảnh GỐC (Độ nét cao nhất có thể)
             disp, skel, crop = rec.process(frame, lbl, raw_dir, csv_path)
             
-            cv2.imshow('Camera', disp)
-            cv2.imshow('Skeleton', skel)
+            # --- HIỂN THỊ NHỎ GỌN ---
+            h, w = disp.shape[:2]
+            # Tính tỉ lệ để resize chỉ dùng cho việc hiển thị (không ảnh hưởng dữ liệu lưu)
+            new_h = int(h * (DISPLAY_WIDTH / w))
+            
+            disp_show = cv2.resize(disp, (DISPLAY_WIDTH, new_h), interpolation=cv2.INTER_AREA)
+            skel_show = cv2.resize(skel, (DISPLAY_WIDTH, new_h), interpolation=cv2.INTER_AREA)
+
+            cv2.imshow('Camera', disp_show)
+            cv2.imshow('Skeleton', skel_show)
+            
             if crop is not None: cv2.imshow('Crop', crop)
 
             k = cv2.waitKey(1) & 0xFF
@@ -293,6 +306,5 @@ def main():
 
         cap.release()
         cv2.destroyAllWindows()
-
 if __name__ == "__main__":
     main()
