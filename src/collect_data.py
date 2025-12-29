@@ -267,25 +267,8 @@ def main():
         print(f"-> CSV: {csv_path}")
 
         cap = cv2.VideoCapture(Config.CAM_ID)
-<<<<<<< HEAD
-
-        # --- [CỰC NÉT] THIẾT LẬP MAX HARDWARE ---
-        # 1. Chuyển định dạng sang MJPG (quan trọng để chạy độ phân giải cao mượt hơn)
-        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-        
-        # 2. Set độ phân giải lên con số "trên trời" (ví dụ 10000)
-        # OpenCV sẽ tự động ép camera chạy ở mức cao nhất nó có thể (Full HD, 2K, 4K...)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 10000)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000)
-        
-        # Tắt tự động lấy nét (nếu camera hỗ trợ) để tránh bị thò thụt làm mờ hình
-        # 0 = tắt, 255 = tắt (tùy camera, dòng này hên xui tùy phần cứng)
-        cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) 
-        # ----------------------------------------
-=======
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
->>>>>>> 75b9403c9ce38d8116bc32e3b6f40291d49f11ff
 
         rec = HandRecorder(curr_cnt)
         
