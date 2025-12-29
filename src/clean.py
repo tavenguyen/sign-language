@@ -7,7 +7,7 @@ RAW_IMAGES_DIR = os.path.join(DATA_DIR, 'raw_images')
 KEYPOINTS_DIR = os.path.join(DATA_DIR, 'keypoints')
 
 print("🧹 ĐANG ĐỒNG BỘ DỮ LIỆU (CSV <-> IMAGE)...")
-print("===========================================")
+print("===========================================")           
 
 # Lấy danh sách các lớp dựa trên các file CSV trong thư mục keypoints
 csv_files = [f for f in os.listdir(KEYPOINTS_DIR) if f.endswith('.csv')]

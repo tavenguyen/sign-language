@@ -15,14 +15,14 @@ class Config:
     KEYPOINTS_DIR: str = 'data/keypoints'
     
     OFFSET: int = 20
-    IMG_SIZE: int = 128 
+    IMG_SIZE: int = 224 
     CAPTURE_DELAY: float = 0.4
     MOVEMENT_THRESHOLD: float = 5.0 
     JITTER_THRESHOLD: float = 15.0  
     SMOOTHING_WINDOW: int = 10      
     
     TARGET_HAND: str = 'Left'      
-    CAM_ID: int = 0
+    CAM_ID: int = 1
     
     COLLECTOR_NAME: str = "Unknown" 
 
@@ -267,16 +267,32 @@ def main():
         print(f"-> CSV: {csv_path}")
 
         cap = cv2.VideoCapture(Config.CAM_ID)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
         rec = HandRecorder(curr_cnt)
+        
+        # Kích thước hiển thị trên màn hình (vẫn giữ nhỏ gọn)
+        DISPLAY_WIDTH = 800 
 
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret: break
 
+            # Xử lý trên ảnh GỐC (Độ nét cao nhất có thể)
             disp, skel, crop = rec.process(frame, lbl, raw_dir, csv_path)
             
-            cv2.imshow('Camera', disp)
-            cv2.imshow('Skeleton', skel)
+            # --- HIỂN THỊ NHỎ GỌN ---
+            h, w = disp.shape[:2]
+            # Tính tỉ lệ để resize chỉ dùng cho việc hiển thị (không ảnh hưởng dữ liệu lưu)
+            new_h = int(h * (DISPLAY_WIDTH / w))
+            
+            disp_show = cv2.resize(disp, (DISPLAY_WIDTH, new_h), interpolation=cv2.INTER_AREA)
+            skel_show = cv2.resize(skel, (DISPLAY_WIDTH, new_h), interpolation=cv2.INTER_AREA)
+
+            cv2.imshow('Camera', disp_show)
+            cv2.imshow('Skeleton', skel_show)
+            
             if crop is not None: cv2.imshow('Crop', crop)
 
             k = cv2.waitKey(1) & 0xFF
@@ -290,6 +306,5 @@ def main():
 
         cap.release()
         cv2.destroyAllWindows()
-
 if __name__ == "__main__":
     main()
