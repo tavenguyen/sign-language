@@ -15,14 +15,14 @@ class Config:
     KEYPOINTS_DIR: str = 'data/keypoints'
     
     OFFSET: int = 20
-    IMG_SIZE: int = 128 
+    IMG_SIZE: int = 224 
     CAPTURE_DELAY: float = 0.4
     MOVEMENT_THRESHOLD: float = 5.0 
     JITTER_THRESHOLD: float = 15.0  
     SMOOTHING_WINDOW: int = 10      
     
     TARGET_HAND: str = 'Left'      
-    CAM_ID: int = 0
+    CAM_ID: int = 1
     
     COLLECTOR_NAME: str = "Unknown" 
 
@@ -267,6 +267,7 @@ def main():
         print(f"-> CSV: {csv_path}")
 
         cap = cv2.VideoCapture(Config.CAM_ID)
+<<<<<<< HEAD
 
         # --- [CỰC NÉT] THIẾT LẬP MAX HARDWARE ---
         # 1. Chuyển định dạng sang MJPG (quan trọng để chạy độ phân giải cao mượt hơn)
@@ -281,6 +282,10 @@ def main():
         # 0 = tắt, 255 = tắt (tùy camera, dòng này hên xui tùy phần cứng)
         cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) 
         # ----------------------------------------
+=======
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+>>>>>>> 75b9403c9ce38d8116bc32e3b6f40291d49f11ff
 
         rec = HandRecorder(curr_cnt)
         
