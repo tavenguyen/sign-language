@@ -266,7 +266,7 @@ def main():
         print(f"-> Label: {lbl} | Current: {curr_cnt}")
         print(f"-> CSV: {csv_path}")
 
-        cap = cv2.VideoCapture(Config.CAM_ID)
+        cap = cv2.VideoCapture(Config.CAM_ID, cv2.CAP_DSHOW)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
