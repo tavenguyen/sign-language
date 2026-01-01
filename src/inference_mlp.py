@@ -25,7 +25,7 @@ class Config:
     OFFSET: int = 20
     SMOOTHING_WINDOW: int = 5 
     TARGET_HAND: str = 'Left' 
-    CAM_ID: int = 0
+    CAM_ID: int = 1
 
     CAM_WIDTH: int = 1280
     CAM_HEIGHT: int = 720
