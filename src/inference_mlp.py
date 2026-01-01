@@ -99,7 +99,7 @@ class SignLanguageDetector:
             raise FileNotFoundError(f"Thieu scaler: {Config.SCALER_PATH}")
             
         print("Dang tai tai nguyen...")
-        model = tf.keras.models.load_model(Config.MODEL_PATH)
+        model = tf.keras.models.load_model(Config.MODEL_PATH, compile = False)
         with open(Config.SCALER_PATH, 'rb') as f:
             scaler = pickle.load(f)
             
