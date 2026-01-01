@@ -25,9 +25,8 @@ class Config:
     OFFSET: int = 20
     SMOOTHING_WINDOW: int = 5 
     TARGET_HAND: str = 'Left' 
-    CAM_ID: int = 0
+    CAM_ID: int = 1
 
-    
     CAM_WIDTH: int = 1280
     CAM_HEIGHT: int = 720
 
@@ -146,7 +145,7 @@ class SignLanguageDetector:
         max_prob = prediction_probs[pred_idx]
         pred_label = self.labels.get(pred_idx, str(pred_idx))
 
-        self.mp_drawing.draw_landmarks(frame, hand_lm, self.mp_hands.HAND_CONNECTIONS)
+        # self.mp_drawing.draw_landmarks(frame, hand_lm, self.mp_hands.HAND_CONNECTIONS)
         bbox = get_square_bbox(lm_px, w, h, Config.OFFSET)
         
         if max_prob > Config.CONFIDENCE_THRESHOLD:
