@@ -9,7 +9,7 @@
 ![Demo System](assets/demo.PNG)
 
 ## Introduction
-Dự án này xây dựng một hệ thống nhận diện thủ ngữ gọn nhẹ và hiệu quả cao, tập trung vào bảng chữ cái tiếng Việt (23 nhãn: 22 chữ cái và trạng thái nghỉ). Thay vì sử dụng mạng CNN nặng nề trên ảnh thô, chúng tôi sử dụng **MediaPipe** để trích xuất 21 điểm mốc xương tay và đưa vào mạng nơ-ron **MLP (Multi-Layer Perceptron)**.
+Dự án này xây dựng một hệ thống nhận diện thủ ngữ gọn nhẹ và hiệu quả cao, tập trung vào bảng chữ cái tiếng Việt (23 nhãn: 22 chữ cái không dấu và trạng thái nghỉ). Thay vì sử dụng mạng CNN nặng nề trên ảnh thô, hệ thống sử dụng **MediaPipe** để trích xuất 21 điểm mốc xương tay và đưa vào mạng nơ-ron **MLP (Multi-Layer Perceptron)**.
 
 **Điểm đáng chú ý:**
 * **Nhẹ:** Kích thước model $\approx$ 0.2 MB.
